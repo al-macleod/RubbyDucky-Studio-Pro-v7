@@ -28,8 +28,12 @@ publish content: callers can use `IntervalScheduler` to trigger a reviewed
 Start the local control UI after exporting the provider settings:
 
 ```powershell
-python -c "from content_engine.config import EngineConfig; from content_engine.control import create_server; s=create_server(EngineConfig.from_env()); print('http://127.0.0.1:8765'); s.serve_forever()"
+python -m content_engine
 ```
+
+Use `--host 127.0.0.1` (the default) for local operation. Do not expose this
+control server directly to the public internet; place it behind authenticated
+network access if it must be reached remotely.
 
 The UI provides masked health/configuration status, Blogger account-link
 redirect setup, AdSense configuration visibility, preview/dry-run generation,

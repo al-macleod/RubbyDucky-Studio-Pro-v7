@@ -2,6 +2,8 @@ import unittest
 import json
 import threading
 import urllib.request
+import subprocess
+import sys
 
 from content_engine.config import ConfigError, EngineConfig
 from content_engine.control import ControlService, create_server
@@ -118,6 +120,13 @@ class ContentEngineTests(unittest.TestCase):
         finally:
             server.shutdown()
             server.server_close()
+
+    def test_module_launcher_help_is_available(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "content_engine", "--help"],
+            capture_output=True, text=True, check=True,
+        )
+        self.assertIn("Run the local content engine control UI", result.stdout)
 
 
 if __name__ == "__main__":

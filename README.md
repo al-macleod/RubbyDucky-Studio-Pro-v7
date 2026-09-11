@@ -1,6 +1,3 @@
-# RubbyDucky-Studio-Pro-v7
-A No-Code highly customizable BadUSB Payload editor/generator.
-
 ## Autonomous content engine
 
 The isolated Python `content_engine` package provides safe, provider-agnostic

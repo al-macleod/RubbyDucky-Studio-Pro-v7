@@ -75,6 +75,10 @@ class ContentEngine:
         self.logger.info("article_published")
         return Article(**{**article.__dict__, "blogger_url": url})
 
+    def validate_for_publication(self, article: Article) -> None:
+        """Validate an article before first-party publication."""
+        validate_article(article)
+
     def _generate_with_retry(self, request: ContentRequest) -> Article:
         attempts = self.config.max_retries + 1
         for attempt in range(attempts):

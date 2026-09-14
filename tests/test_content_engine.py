@@ -4,11 +4,13 @@ import threading
 import urllib.request
 import subprocess
 import sys
+import tempfile
 
 from content_engine.config import ConfigError, EngineConfig
 from content_engine.control import ControlService, create_server
 from content_engine.models import Article, ContentRequest
 from content_engine.pipeline import ContentEngine, ContentEngineError
+from content_engine.platform import BlogService, BlogStore, create_platform_server
 from content_engine.providers import ProviderError
 from content_engine.scheduler import IntervalScheduler
 from content_engine.safety import SafetyError
@@ -127,6 +129,41 @@ class ContentEngineTests(unittest.TestCase):
             capture_output=True, text=True, check=True,
         )
         self.assertIn("Run the local content engine control UI", result.stdout)
+
+    def test_first_party_store_keeps_drafts_private_until_published(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = BlogStore(directory + "/blog.db")
+            service = BlogService(ContentEngine(config(), provider=FakeProvider()), store)
+            draft = service.generate_draft(ContentRequest("A safe topic"))
+            self.assertEqual(draft["status"], "draft")
+            self.assertEqual(store.list_posts(published_only=True), [])
+            published = service.publish(draft["id"])
+            self.assertEqual(published["status"], "published")
+            self.assertEqual(store.get_by_slug(draft["slug"])["id"], draft["id"])
+
+    def test_first_party_server_requires_admin_token_and_serves_published_post(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = BlogStore(directory + "/blog.db")
+            service = BlogService(ContentEngine(config(), provider=FakeProvider()), store)
+            draft = service.generate_draft(ContentRequest("A safe topic"))
+            service.publish(draft["id"])
+            server = create_platform_server(
+                service.engine, directory + "/blog.db", admin_token="test-admin", port=0
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base = "http://127.0.0.1:%d" % server.server_address[1]
+            try:
+                public = urllib.request.urlopen(base + "/").read().decode()
+                self.assertIn("A useful guide", public)
+                admin = urllib.request.urlopen(base + "/admin").read().decode()
+                self.assertIn("Macleod's Method Admin", admin)
+                with self.assertRaises(urllib.error.HTTPError) as denied:
+                    urllib.request.urlopen(base + "/api/admin/posts")
+                self.assertEqual(denied.exception.code, 401)
+            finally:
+                server.shutdown()
+                server.server_close()
 
 
 if __name__ == "__main__":

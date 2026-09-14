@@ -37,6 +37,36 @@ redirect setup, AdSense configuration visibility, preview/dry-run generation,
 and a separate publish action. AdSense identifiers are configuration only;
 the engine does not claim approval, traffic, or revenue.
 
+## First-party Macleod's Method platform
+
+The repository also includes a local-first blog platform that removes Blogger
+from the core publishing path. It stores posts in SQLite, serves public
+published articles, keeps AI output as drafts by default, and requires an
+explicit admin bearer token to list drafts, generate drafts, or publish a
+reviewed post:
+
+```powershell
+$env:CONTENT_PROVIDER_URL = "https://your-provider.example/v1/chat/completions"
+$env:CONTENT_PROVIDER_API_KEY = "<secret>"
+$env:CONTENT_ADMIN_TOKEN = "<long-random-secret>"
+python -m content_engine --platform --port 8787
+```
+
+The public site is served at `http://127.0.0.1:8787/`; admin API calls use
+`Authorization: Bearer $env:CONTENT_ADMIN_TOKEN`. The server binds to
+localhost by default. Put it behind HTTPS, an authenticated reverse proxy,
+backups, and a process supervisor before exposing it publicly. It does not
+automatically publish or claim production hosting, SEO traffic, or revenue.
+
+Open `http://127.0.0.1:8787/admin` for the local admin page. It can generate
+AI drafts, list drafts and published posts, and publish only after an explicit
+review action. The token is kept in browser session storage.
+
+This first-party route makes Blogger optional rather than required, but it does
+not eliminate third-party dependencies entirely: AI inference, DNS/TLS,
+hosting, email, analytics, payment providers, and AdSense (if used) remain
+external services.
+
 ### Prerequisites for continuous 30-minute publication
 
 This checkpoint intentionally does not claim a live blog or AdSense account.
